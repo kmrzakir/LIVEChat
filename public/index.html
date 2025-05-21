@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chat App</title>
+
+    <link rel="stylesheet" href="index.css" />
+  </head>
+  <body>
+    <button class="theme-toggle" onclick="toggleTheme()">Change Theme</button>
+    <!-- Add an audio element for the sound -->
+   
+    <audio id="chat-open-sound" src="/photos/20 May, 11.04 pm​.m4a"></audio>
+    <audio id="chat-open-sound" src="/photos/WYR_GEMI_-_Eagle(48k).mp3"></audio>
+    <div id="agreement-screen" class="agreement-screen">
+      <p>This page was created by Malik Adil Ferooz. Do you agree?</p>
+      <button id="agree-button">Agree</button>
+    </div>
+
+    <div id="chat-screen" class="screen" style="display: none;">
+      <img src="/photos/1747758351878.jpg" with="10" id="user">
+      <h1 class="chat-title">Live Chat with Malik Adil </h1>
+      <!-- Top bar with video and voice call icons -->
+      <div class="top-bar">
+        <img src="/photos/1747809266931.jpg" alt="Video Call" class="icon" width="40"/>
+        <img src="/photos/1747809266944.jpg" alt="Voice Call" class="icon" width="40" />
+      </div>
+
+      <!-- Messages display area -->
+      <div id="message-box" class="message-box"></div>
+
+      <!-- send message area -->
+      <div class="send_message_div">
+        
+        <input type="text" placeholder="Enter a message" id="message-input" />
+        <img
+          src="/photos/1747758523293.jpg" width="60"
+          class="sendBut"
+          id="send-button"
+        />
+      </div>
+
+    
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      const agreementScreen = document.getElementById("agreement-screen");
+      const chatScreen = document.getElementById("chat-screen");
+      const agreeButton = document.getElementById("agree-button");
+      const chatOpenSound = document.getElementById("chat-open-sound");
+
+      agreeButton.addEventListener("click", () => {
+        agreementScreen.style.display = "none";
+        chatScreen.style.display = "flex";
+        chatOpenSound.play(); // Play the sound
+      });
+
+      const socket = io();
+
+      const sendBtn = document.getElementById("send-button");
+      const inputField = document.getElementById("message-input");
+      const message_box = document.getElementById("message-box");
+
+      sendBtn.addEventListener("click", (e) => {
+        // cretae a p tag
+        const myTag = document.createElement("p");
+        myTag.classList.add("my_message");
+
+        if (inputField.value != "") {
+          // send a message to the server
+          socket.emit("clent message", inputField.value);
+          myTag.textContent = inputField.value;
+          message_box.appendChild(myTag);
+          inputField.value = "";
+        } else {
+          alert("Please Enter a message");
+        }
+      });
+
+      // read the message send from the server
+      socket.on("server message", (msg) => {
+        // message_box.innerHTML = msg;
+        const otherTag = document.createElement("p");
+        otherTag.classList.add("other_message");
+
+        otherTag.textContent = msg;
+        message_box.appendChild(otherTag);
+
+        // Scroll to the bottom
+        // message_box.scrollTop = message_box.scrollHeight;
+      });
+
+      // Handle video call button click
+      const videoCallButton = document.getElementById("video-call-button");
+      videoCallButton.addEventListener("click", () => {
+        const userName = prompt("Enter your name to start a video call:");
+        if (userName) {
+          socket.emit("video call request", { from: userName });
+          alert("Video call request sent!");
+        }
+      });
+
+      // Listen for incoming video call requests
+      socket.on("receive video call", (data) => {
+        const accept = confirm(`${data.from} is calling you. Do you want to accept?`);
+        if (accept) {
+          socket.emit("video call accepted", { to: data.from });
+          alert("Video call accepted!");
+        }
+      });
+
+      // Notify when the video call is accepted
+      socket.on("video call accepted notification", (data) => {
+        alert(`Your video call request was accepted by ${data.to}`);
+      });
+
+      const localVideo = document.createElement("video");
+      const remoteVideo = document.createElement("video");
+      localVideo.autoplay = true;
+      remoteVideo.autoplay = true;
+
+      let localStream;
+      let peerConnection;
+      const config = {
+        iceServers: [
+          { urls: "stun:stun.l.google.com:19302" }, // Public STUN server
+        ],
+      };
+
+      // // Handle video call button click
+      // videoCallButton.addEventListener("click", async () => {
+      //   const userName = prompt("Enter your name to start a video call:");
+      //   if (userName) { 
+      //     try {
+      //       localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      //       localVideo.srcObject = localStream;
+      //       document.body.appendChild(localVideo);
+
+      //       socket.emit("video call request", { from: userName });
+      //       alert("Video call request sent!");
+      //     } catch (error) {
+      //       console.error("Error accessing media devices:", error);
+      //       alert("Could not access camera or microphone.");
+      //     }
+      //   }
+      // });
+
+      // // Listen for incoming video call requests
+      // socket.on("receive video call", async (data) => {
+      //   const accept = confirm(`${data.from} is calling you. Do you want to accept?`);
+      //   if (accept) {
+      //     try {
+      //       localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      //       localVideo.srcObject = localStream;
+      //       document.body.appendChild(localVideo);
+
+      //       socket.emit("video call accepted", { to: data.from });
+      //       startCall();
+      //     } catch (error) {
+      //       console.error("Error accessing media devices:", error);
+      //       alert("Could not access camera or microphone.");
+      //     }
+      //   }
+      // });
+
+      // // Notify when the video call is accepted
+      // socket.on("video call accepted notification", (data) => {
+      //   alert(`Your video call request was accepted by ${data.to}`);
+      //   startCall();
+      // });
+
+      // // Start WebRTC connection
+      // function startCall() {
+      //   peerConnection = new RTCPeerConnection(config);
+
+      //   // Add local stream tracks to the peer connection
+      //   localStream.getTracks().forEach((track) => {
+      //     peerConnection.addTrack(track, localStream);
+      //   });
+
+      //   // Handle remote stream
+      //   peerConnection.ontrack = (event) => {
+      //     remoteVideo.srcObject = event.streams[0];
+      //     document.body.appendChild(remoteVideo);
+      //   };
+
+      //   // Handle ICE candidates
+      //   peerConnection.onicecandidate = (event) => {
+      //     if (event.candidate) {
+      //       socket.emit("ice candidate", event.candidate);
+      //     }
+      //   };
+
+      //   // Create and send offer
+      //   peerConnection.createOffer().then((offer) => {
+      //     peerConnection.setLocalDescription(offer);
+      //     socket.emit("offer", offer);
+      //   });
+      // }
+
+      // // Handle incoming offer
+      // socket.on("offer", (offer) => {
+      //   peerConnection = new RTCPeerConnection(config);
+
+      //   // Add local stream tracks to the peer connection
+      //   localStream.getTracks().forEach((track) => {
+      //     peerConnection.addTrack(track, localStream);
+      //   });
+
+      //   peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+
+      //   // Create and send answer
+      //   peerConnection.createAnswer().then((answer) => {
+      //     peerConnection.setLocalDescription(answer);
+      //     socket.emit("answer", answer);
+      //   });
+
+      //   // Handle remote stream
+      //   peerConnection.ontrack = (event) => {
+      //     remoteVideo.srcObject = event.streams[0];
+      //     document.body.appendChild(remoteVideo);
+      //   };
+
+      //   // Handle ICE candidates
+      //   peerConnection.onicecandidate = (event) => {
+      //     if (event.candidate) {
+      //       socket.emit("ice candidate", event.candidate);
+      //     }
+      //   };
+      // });
+
+      // // Handle incoming answer
+      // socket.on("answer", (answer) => {
+      //   peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+      // });
+
+      // // Handle incoming ICE candidates
+      // socket.on("ice candidate", (candidate) => {
+      //   peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+      // });
+      function toggleTheme() {
+  document.body.classList.toggle('dark-mode');
+}
+    </script>
+  </body>
+</html>
